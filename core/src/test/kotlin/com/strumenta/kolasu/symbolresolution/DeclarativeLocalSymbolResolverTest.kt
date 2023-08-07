@@ -78,6 +78,28 @@ class SymbolResolutionTest {
     }
 
     @Test
+    fun testSymbolResolutionNestedRefExprWrong() {
+        getCompilationUnitNestedRefExprWrong()
+            // pre-condition
+            .apply { assertNotAllReferencesResolved() }
+            // resolution
+            .apply { getFullSymbolResolver().resolveSymbols(this) }
+            // post-condition
+            .apply { assertNotAllReferencesResolved() }
+    }
+
+    @Test
+    fun testSymbolResolutionNestedRefExprOK() {
+        getCompilationUnitNestedRefExprOK()
+            // pre-condition
+            .apply { assertNotAllReferencesResolved() }
+            // resolution
+            .apply { getFullSymbolResolver().resolveSymbols(this) }
+            // post-condition
+            .apply { assertAllReferencesResolved() }
+    }
+
+    @Test
     fun testIncrementalSymbolResolutionDevelopment() {
         getCompilationUnit()
             // pre-condition - v1
@@ -142,6 +164,144 @@ class SymbolResolutionTest {
             ),
             ClassDecl("class_1"),
         ),
+    ).apply { assignParents() }
+
+    private fun getCompilationUnitNestedRefExprWrong() = CompilationUnit(
+        content = mutableListOf(
+            ClassDecl(
+                name = "class_0",
+                features = mutableListOf(
+                    FeatureDecl(
+                        name = "feature_0",
+                        type = ReferenceByName(name = "class_1"),
+                    ),
+                ),
+                operations = mutableListOf(
+                    OperationDecl(
+                        name = "operation_0",
+                        returns = ReferenceByName(name = "class_0"),
+                        statements = mutableListOf(
+                            AssignmentStmt(
+                                lhs = RefExpr(
+                                    context = CallExpr(
+                                        operation = ReferenceByName(name = "operation_0"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_0"),
+                                ),
+                                rhs = RefExpr(
+                                    context = CallExpr(
+                                        operation = ReferenceByName(name = "operation_0"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_0"),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            ClassDecl(
+                name = "class_1",
+                features = mutableListOf(
+                    FeatureDecl(
+                        name = "feature_1_0",
+                        type = ReferenceByName(name = "class_0"),
+                    ),
+                ),
+                operations = mutableListOf(
+                    OperationDecl(
+                        name = "operation_1",
+                        returns = ReferenceByName(name = "class_1"),
+                        statements = mutableListOf(
+                            AssignmentStmt(
+                                lhs = RefExpr(
+                                    context = CallExpr(
+                                        operation = ReferenceByName(name = "operation_1"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_1_0"),
+                                ),
+                                rhs = RefExpr(
+                                    context = RefExpr(
+                                        context = CallExpr(
+                                            operation = ReferenceByName(name = "operation_1"),
+                                        ),
+                                        symbol = ReferenceByName(name = "feature_1_0"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_1_0"),   // <-- it resolves but it should not.
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),        ),
+    ).apply { assignParents() }
+
+    private fun getCompilationUnitNestedRefExprOK() = CompilationUnit(
+        content = mutableListOf(
+            ClassDecl(
+                name = "class_0",
+                features = mutableListOf(
+                    FeatureDecl(
+                        name = "feature_0",
+                        type = ReferenceByName(name = "class_1"),
+                    ),
+                ),
+                operations = mutableListOf(
+                    OperationDecl(
+                        name = "operation_0",
+                        returns = ReferenceByName(name = "class_0"),
+                        statements = mutableListOf(
+                            AssignmentStmt(
+                                lhs = RefExpr(
+                                    context = CallExpr(
+                                        operation = ReferenceByName(name = "operation_0"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_0"),
+                                ),
+                                rhs = RefExpr(
+                                    context = CallExpr(
+                                        operation = ReferenceByName(name = "operation_0"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_0"),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            ClassDecl(
+                name = "class_1",
+                features = mutableListOf(
+                    FeatureDecl(
+                        name = "feature_1_0",
+                        type = ReferenceByName(name = "class_0"),
+                    ),
+                ),
+                operations = mutableListOf(
+                    OperationDecl(
+                        name = "operation_1",
+                        returns = ReferenceByName(name = "class_1"),
+                        statements = mutableListOf(
+                            AssignmentStmt(
+                                lhs = RefExpr(
+                                    context = CallExpr(
+                                        operation = ReferenceByName(name = "operation_1"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_1_0"),
+                                ),
+                                rhs = RefExpr(
+                                    context = RefExpr(
+                                        context = CallExpr(
+                                            operation = ReferenceByName(name = "operation_1"),
+                                        ),
+                                        symbol = ReferenceByName(name = "feature_1_0"),
+                                    ),
+                                    symbol = ReferenceByName(name = "feature_0"),   // <-- it should resolve, but it doesn't.
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),        ),
     ).apply { assignParents() }
 
     private fun getFullSymbolResolver() = symbolResolver {
